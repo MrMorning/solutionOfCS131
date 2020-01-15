@@ -20,7 +20,7 @@ def load(image_path):
 
     ### YOUR CODE HERE
     # Use skimage io.imread
-    pass
+    out = skimage.io.imread(image_path)
     ### END YOUR CODE
 
     # Let's convert the image to be between the correct range.
