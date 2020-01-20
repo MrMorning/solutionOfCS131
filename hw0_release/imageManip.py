@@ -20,7 +20,7 @@ def load(image_path):
 
     ### YOUR CODE HERE
     # Use skimage io.imread
-    out = skimage.io.imread(image_path)
+    out = io.imread(image_path)
     ### END YOUR CODE
 
     # Let's convert the image to be between the correct range.
@@ -45,7 +45,7 @@ def dim_image(image):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    out = 0.5 * image * image
     ### END YOUR CODE
 
     return out
@@ -66,7 +66,7 @@ def convert_to_grey_scale(image):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    out = color.rgb2grey(image)
     ### END YOUR CODE
 
     return out
@@ -84,9 +84,13 @@ def rgb_exclusion(image, channel):
     """
 
     out = None
-
+    print(image.shape)
     ### YOUR CODE HERE
-    pass
+    dic = {'R':0, 'G':1, 'B':2}
+    #mat = np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=np.float32)
+    rgb = np.array(image).T
+    rgb[dic[channel]] *= 0
+    out = rgb.T
     ### END YOUR CODE
 
     return out
@@ -107,7 +111,9 @@ def lab_decomposition(image, channel):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    dic = {'L':0, 'A':1, 'B':2}
+    mat = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+    out = np.array(image) * mat[dic[channel]]
     ### END YOUR CODE
 
     return out
