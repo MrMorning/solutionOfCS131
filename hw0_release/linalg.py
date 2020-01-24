@@ -1,4 +1,6 @@
-import numpy as np
+from imageManip import *
+
+print("hello world")
 
 
 def dot_product(a, b):
@@ -85,7 +87,7 @@ def get_singular_values(M, k):
     singular_values = None
     ### YOUR CODE HERE
     _, singular_values, _ = svd(M)
-    singular_values = singular_values[:k] 
+    singular_values = singular_values[:k]
     ### END YOUR CODE
     return singular_values
 
@@ -96,11 +98,10 @@ def eigen_decomp(M):
     (optional): You might find the `np.linalg.eig` function useful.
 
     Args:
-        matrix: numpy matrix of shape (m, n)
+        M: numpy matrix of shape (m, n)
 
-    Returns:
-        w: numpy array of shape (m, m) such that the column v[:,i] is the eigenvector corresponding to the eigenvalue w[i].
-        v: Matrix where every column is an eigenvector.
+    Returns: w: numpy array of shape (m, m) such that the column v[:,i] is the eigenvector corresponding to the
+    eigenvalue w[i]. v: Matrix where every column is an eigenvector.
     """
     w = None
     v = None

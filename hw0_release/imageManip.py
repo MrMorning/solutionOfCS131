@@ -1,7 +1,3 @@
-import math
-
-import numpy as np
-from PIL import Image
 from skimage import color, io
 
 
@@ -113,7 +109,9 @@ def lab_decomposition(image, channel):
     ### YOUR CODE HERE
     dic = {'L':0, 'A':1, 'B':2}
     mat = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
-    out = np.array(image) * mat[dic[channel]]
+    out = np.array(lab.copy()) * mat[dic[channel]]
+    out = color.lab2rgb(out.copy())
+    # a = np.ones(10).reshape((3, 4))
     ### END YOUR CODE
 
     return out
@@ -134,7 +132,11 @@ def hsv_decomposition(image, channel='H'):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    lis = ['H', 'S', 'V']
+    dic = {x: i for i, x in enumerate(lis)}
+    mat = np.eye(3)
+    onl = hsv * mat[dic[channel]]
+    out = color.hsv2rgb(onl)
     ### END YOUR CODE
 
     return out
@@ -160,7 +162,11 @@ def mix_images(image1, image2, channel1, channel2):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    left_part = np.array(rgb_exclusion(image1, channel1))
+    right_part = np.array(rgb_exclusion(image2, channel2))
+    w1 = int(left_part.shape[1])
+    w2 = int(right_part.shape[1])
+    out = np.concatenate((left_part[:, :w1 // 2, :], right_part[:, -w2 // 2:, :]), axis=1)
     ### END YOUR CODE
 
     return out
@@ -181,7 +187,7 @@ def mix_quadrants(image):
         Bottom right quadrant: Remove the 'R' channel using `rgb_exclusion()`.
 
     Args:
-        image1: numpy array of shape(image_height, image_width, 3).
+        image: numpy array of shape(image_height, image_width, 3).
 
     Returns:
         out: numpy array of shape(image_height, image_width, 3).
@@ -189,7 +195,38 @@ def mix_quadrants(image):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    image_ndarray = np.array(image)
+    image_width = image_ndarray.shape[1]
+    image_height = image_ndarray.shape[0]
+    left_top = rgb_exclusion(image_ndarray[:image_height // 2, :image_width // 2, :], 'R')
+    right_top = dim_image(image_ndarray[:image_height // 2, -image_width // 2:, :])
+    left_bottom = np.sqrt(image_ndarray[-image_height // 2:, :image_width // 2, :])
+    right_bottom = rgb_exclusion(image_ndarray[-image_height // 2:, -image_width // 2:, :], 'R')
+    out = np.concatenate((np.concatenate((left_top, right_top), axis=1),
+                          np.concatenate((left_bottom, right_bottom), axis=1)), axis=0)
     ### END YOUR CODE
 
     return out
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    image1_path = './image1.jpg'
+    image2_path = './image2.jpg'
+
+
+    def display(img):
+        # Show image
+        plt.figure(figsize=(5, 5))
+        plt.imshow(img)
+        plt.axis('off')
+        plt.show()
+
+
+    image1 = load(image1_path)
+    image2 = load(image2_path)
+
+    image_with_h = hsv_decomposition(image1)
+    display(image_with_h)
