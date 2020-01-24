@@ -1,3 +1,4 @@
+import numpy as np
 from skimage import color, io
 
 
@@ -207,26 +208,3 @@ def mix_quadrants(image):
     ### END YOUR CODE
 
     return out
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    image1_path = './image1.jpg'
-    image2_path = './image2.jpg'
-
-
-    def display(img):
-        # Show image
-        plt.figure(figsize=(5, 5))
-        plt.imshow(img)
-        plt.axis('off')
-        plt.show()
-
-
-    image1 = load(image1_path)
-    image2 = load(image2_path)
-
-    image_with_h = hsv_decomposition(image1)
-    display(image_with_h)
