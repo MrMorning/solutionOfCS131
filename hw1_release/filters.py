@@ -150,7 +150,7 @@ def cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    out = conv_fast(f, g)
+    out = conv_fast(f, np.flip(g))
     ### END YOUR CODE
 
     return out
@@ -175,7 +175,7 @@ def zero_mean_cross_correlation(f, g):
     ### YOUR CODE HERE
     gg = g.copy()
     gg -= np.mean(gg)
-    out = conv_fast(f, gg)
+    out = cross_correlation(f, gg)
     ### END YOUR CODE
 
     return out
@@ -200,7 +200,16 @@ def normalized_cross_correlation(f, g):
 
     out = None
     ### YOUR CODE HERE
-    pass
+    Hi, Wi = f.shape
+    Hk, Wk = g.shape
+    out = np.zeros((Hi, Wi))
+    image_with_padding = zero_pad(f, Hk // 2, Wk // 2)
+    kernel = (g - np.mean(g)) / np.std(g)
+    for m in range(Hi):
+        for n in range(Wi):
+            patch_image = np.copy(image_with_padding[m: m + Hk, n: n + Wk])
+            patch_image = (patch_image - np.mean(patch_image)) / np.std(patch_image)
+            out[m, n] = np.sum(kernel * patch_image)
     ### END YOUR CODE
 
     return out
