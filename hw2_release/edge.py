@@ -9,6 +9,7 @@ Python Version: 3.5+
 
 import numpy as np
 
+
 def conv(image, kernel):
     """ An implementation of convolution filter.
 
@@ -26,20 +27,24 @@ def conv(image, kernel):
     Hi, Wi = image.shape
     Hk, Wk = kernel.shape
     out = np.zeros((Hi, Wi))
+    flipped_kernel = np.flip(kernel)
 
     # For this assignment, we will use edge values to pad the images.
     # Zero padding will make derivatives at the image boundary very big,
     # whereas we want to ignore the edges at the boundary.
     pad_width0 = Hk // 2
     pad_width1 = Wk // 2
-    pad_width = ((pad_width0,pad_width0),(pad_width1,pad_width1))
+    pad_width = ((pad_width0, pad_width0), (pad_width1, pad_width1))
     padded = np.pad(image, pad_width, mode='edge')
 
     ### YOUR CODE HERE
-    pass
+    for i in range(Hi):
+        for j in range(Wi):
+            out[i, j] = np.sum(flipped_kernel * padded[i:i + Hk, j:j + Wk])
     ### END YOUR CODE
 
     return out
+
 
 def gaussian_kernel(size, sigma):
     """ Implementation of Gaussian Kernel.
@@ -61,10 +66,14 @@ def gaussian_kernel(size, sigma):
     kernel = np.zeros((size, size))
 
     ### YOUR CODE HERE
-    pass
-    ### END YOUR CODE
+    k = size >> 1
+    basemat = np.arange(size)
+    mata = np.tile(basemat, (size, 1))
+    matb = np.tile(basemat.reshape((size, 1)), (1, size))
+    kernel = np.exp(-((mata - k) * (mata - k) + (matb - k) * (matb - k)) / (2 * sigma * sigma)) / (2 * np.pi * sigma)
 
     return kernel
+
 
 def partial_x(img):
     """ Computes partial x-derivative of input img.
@@ -81,10 +90,12 @@ def partial_x(img):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.array([[0.5, 0, -0.5]])
+    out = conv(img, kernel)
     ### END YOUR CODE
 
     return out
+
 
 def partial_y(img):
     """ Computes partial y-derivative of input img.
@@ -101,10 +112,12 @@ def partial_y(img):
     out = None
 
     ### YOUR CODE HERE
-    pass
+    kernel = np.array([[0.5, 0, -0.5]]).T
+    out = conv(img, kernel)
     ### END YOUR CODE
 
     return out
+
 
 def gradient(img):
     """ Returns gradient magnitude and direction of input img.
@@ -125,7 +138,11 @@ def gradient(img):
     theta = np.zeros(img.shape)
 
     ### YOUR CODE HERE
-    pass
+    dx = partial_x(img)
+    dy = partial_y(img)
+    G = np.sqrt(dx * dx + dy * dy)
+    theta = np.arctan2(dy, dx) / (2 * np.pi) * 360
+    theta[theta < 0] += 360
     ### END YOUR CODE
 
     return G, theta
@@ -151,10 +168,37 @@ def non_maximum_suppression(G, theta):
     theta = np.floor((theta + 22.5) / 45) * 45
 
     ### BEGIN YOUR CODE
-    pass
+    direction = {
+        0: (0, 1),
+        45: (1, 1),
+        90: (1, 0),
+        135: (1, -1),
+        180: (0, -1)
+    }
+    tmplist = [1, -1]
+    theta[theta > 180] -= 180
+    for x in range(H):
+        for y in range(W):
+            flag = True
+            for ele in tmplist:
+                divec = np.array(direction[theta[x, y]])
+                divec *= ele
+                try:
+                    xx, yy = tuple(np.array([x, y]) + divec)
+                    if np.any(np.array([xx, yy]) < 0):
+                        continue
+                    if G[x, y] <= G[xx, yy]:
+                        flag = False
+                except IndexError:
+                    # print(e)
+                    pass
+                    # for condition reach edge
+            if flag:
+                out[x, y] = G[x, y]
     ### END YOUR CODE
 
     return out
+
 
 def double_thresholding(img, high, low):
     """
@@ -176,7 +220,8 @@ def double_thresholding(img, high, low):
     weak_edges = np.zeros(img.shape, dtype=np.bool)
 
     ### YOUR CODE HERE
-    pass
+    strong_edges = img > high
+    weak_edges = (img <= high) & (img > low)
     ### END YOUR CODE
 
     return strong_edges, weak_edges
@@ -200,14 +245,15 @@ def get_neighbors(y, x, H, W):
     """
     neighbors = []
 
-    for i in (y-1, y, y+1):
-        for j in (x-1, x, x+1):
+    for i in (y - 1, y, y + 1):
+        for j in (x - 1, x, x + 1):
             if i >= 0 and i < H and j >= 0 and j < W:
                 if (i == y and j == x):
                     continue
                 neighbors.append((i, j))
 
     return neighbors
+
 
 def link_edges(strong_edges, weak_edges):
     """ Find weak edges connected to strong edges and link them.
@@ -235,10 +281,25 @@ def link_edges(strong_edges, weak_edges):
     edges = np.copy(strong_edges)
 
     ### YOUR CODE HERE
-    pass
+    for i in range(indices.shape[0]):
+        x, y = tuple(indices[i])
+        queue_bfs = []
+        queue_bfs.append((x, y))
+        while queue_bfs:
+            xx, yy = queue_bfs[0]
+            del queue_bfs[0]
+            neighbors = get_neighbors(xx, yy, H, W)
+            for neighbor in neighbors:
+                xv, yv = neighbor
+                if weak_edges[xv, yv] == 0:
+                    continue
+                edges[xv, yv] = True
+                weak_edges[xv, yv] = False
+                queue_bfs.append(neighbor)
     ### END YOUR CODE
 
     return edges
+
 
 def canny(img, kernel_size=5, sigma=1.4, high=20, low=15):
     """ Implement canny edge detector by calling functions above.
@@ -253,7 +314,11 @@ def canny(img, kernel_size=5, sigma=1.4, high=20, low=15):
         edge: numpy array of shape(H, W).
     """
     ### YOUR CODE HERE
-    pass
+    smoothed = conv(img, gaussian_kernel(kernel_size, sigma))
+    G, theta = gradient(smoothed)
+    nms = non_maximum_suppression(G, theta)
+    strong, weak = double_thresholding(nms, high, low)
+    edge = link_edges(strong, weak)
     ### END YOUR CODE
 
     return edge
