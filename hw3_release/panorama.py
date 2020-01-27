@@ -8,13 +8,14 @@ Python Version: 3.5+
 """
 
 import numpy as np
+# from edge import gaussian_kernel
+from scipy.ndimage.filters import convolve
+from scipy.spatial.distance import cdist
 from skimage import filters
 from skimage.feature import corner_peaks
 from skimage.util.shape import view_as_blocks
-from scipy.spatial.distance import cdist
-from scipy.ndimage.filters import convolve
 
-from utils import pad, unpad, get_output_space, warp_image
+from utils import pad
 
 
 def harris_corners(img, window_size=3, k=0.04):
@@ -42,9 +43,16 @@ def harris_corners(img, window_size=3, k=0.04):
 
     dx = filters.sobel_v(img)
     dy = filters.sobel_h(img)
-
+    # print(img.shape)
+    # print(dx.shape)
+    dx2 = dx ** 2
+    dy2 = dy ** 2
+    dxdy = dx * dy
     ### YOUR CODE HERE
-    pass
+    sum_of_dx2 = convolve(dx2, window, mode='constant', cval=0.0)
+    sum_of_dy2 = convolve(dy2, window, mode='constant', cval=0.0)
+    sum_of_dxdy = convolve(dxdy, window, mode='constant', cval=0.0)
+    response = sum_of_dx2 * sum_of_dy2 - sum_of_dxdy ** 2 - k * ((sum_of_dx2 + sum_of_dy2) ** 2)
     ### END YOUR CODE
 
     return response
