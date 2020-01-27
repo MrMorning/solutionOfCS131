@@ -70,7 +70,8 @@ def gaussian_kernel(size, sigma):
     basemat = np.arange(size)
     mata = np.tile(basemat, (size, 1))
     matb = np.tile(basemat.reshape((size, 1)), (1, size))
-    kernel = np.exp(-((mata - k) * (mata - k) + (matb - k) * (matb - k)) / (2 * sigma * sigma)) / (2 * np.pi * sigma)
+    kernel = np.exp(-((mata - k) * (mata - k) + (matb - k) * (matb - k)) / (2 * sigma * sigma)) / (
+                2 * np.pi * sigma * sigma)
 
     return kernel
 
