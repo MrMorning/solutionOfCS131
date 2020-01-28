@@ -370,3 +370,26 @@ def hough_transform(img):
     ### END YOUR CODE
 
     return accumulator, rhos, thetas
+
+
+def log(image, size=5, sigma=1.4):
+    laplacian_kernel = np.array([0, 1, 0, 1, -4, 1, 0, 1, 0]).reshape((3, 3))
+    gauss_kernel = gaussian_kernel(size, sigma)
+    log_kernel = conv(gauss_kernel, laplacian_kernel)
+    return conv(image, log_kernel)
+
+
+def llog(image, size=5, sigma=1.4, time=1):
+    laplacian_kernel = np.array([0, 1, 0, 1, -4, 1, 0, 1, 0]).reshape((3, 3))
+    gauss_kernel = gaussian_kernel(size, sigma)
+    log_kernel = conv(gauss_kernel, laplacian_kernel)
+    for i in range(time):
+        log_kernel = conv(log_kernel, laplacian_kernel)
+    return conv(image, log_kernel)
+
+
+def dog(image, size=5, sigma=1.4, k=1.2):
+    gauss1 = gaussian_kernel(size, sigma)
+    gauss2 = gaussian_kernel(size, k * sigma)
+    kernel = gauss2 - gauss1
+    return conv(image, kernel)
