@@ -78,7 +78,11 @@ def simple_descriptor(patch):
     """
     feature = []
     ### YOUR CODE HERE
-    pass
+    feature = np.copy(patch)
+    feature -= np.mean(feature)
+    feature /= np.std(feature)
+    # assert np.mean(feature) == 0 and np.std(feature) == 1
+    feature = np.ravel(feature)
     ### END YOUR CODE
     return feature
 
@@ -131,7 +135,12 @@ def match_descriptors(desc1, desc2, threshold=0.5):
     dists = cdist(desc1, desc2)
 
     ### YOUR CODE HERE
-    pass
+    for i in range(N):
+        mindist = np.min(dists[i])
+        second_min_dist = np.sort(dists[i])[1]
+        if (mindist / second_min_dist < threshold):
+            matches.append((i, np.argmin(dists[i])))
+    matches = np.array(matches)
     ### END YOUR CODE
 
     return matches
