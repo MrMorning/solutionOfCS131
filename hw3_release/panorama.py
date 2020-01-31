@@ -7,7 +7,6 @@ Last modified: 09/27/2018
 Python Version: 3.5+
 """
 
-import numpy as np
 # from edge import gaussian_kernel
 from scipy.ndimage.filters import convolve
 from scipy.spatial.distance import cdist
@@ -15,6 +14,7 @@ from skimage import filters
 from skimage.feature import corner_peaks
 from skimage.util.shape import view_as_blocks
 
+from utils import *
 from utils import pad
 
 
@@ -166,7 +166,7 @@ def fit_affine_matrix(p1, p2):
     p2 = pad(p2)
 
     ### YOUR CODE HERE
-    pass
+    H = np.linalg.lstsq(p2, p1, rcond=None)[0]
     ### END YOUR CODE
 
     # Sometimes numerical issues cause least-squares to produce the last
@@ -208,14 +208,29 @@ def ransac(keypoints1, keypoints2, matches, n_iters=200, threshold=20):
     matched1 = pad(keypoints1[matches[:,0]])
     matched2 = pad(keypoints2[matches[:,1]])
 
-    max_inliers = np.zeros(N)
+    max_inliers = np.zeros(N).astype(int)
     n_inliers = 0
-
     # RANSAC iteration start
     ### YOUR CODE HERE
-    pass
+    H = np.zeros((3, 3))
+    for i in range(n_iters):
+        selected_indices = np.random.choice(N, 8)
+        selected_matched1 = matched1[selected_indices]
+        selected_matched2 = matched2[selected_indices]
+        assert selected_matched1.shape == (8, 3) and selected_matched2.shape == (8, 3)
+        convert_H = np.linalg.lstsq(selected_matched2, selected_matched1, rcond=None)[0]
+        # print(matched2.shape)
+        # print(convert_H.shape)
+        converted_matched1 = matched2 @ convert_H
+        count_inliers = np.sum(np.sum(np.abs(converted_matched1 - matched1), axis=1) < threshold)
+        if (count_inliers > n_inliers):
+            max_inliers = np.arange(N)[np.sum(np.abs(converted_matched1 - matched1), axis=1) < threshold].astype(int)
+            H = convert_H
+            n_inliers = count_inliers
+
     ### END YOUR CODE
-    print(H)
+    # print(H)
+    # print((max_inliers))
     return H, orig_matches[max_inliers]
 
 
@@ -265,7 +280,18 @@ def hog_descriptor(patch, pixels_per_cell=(8,8)):
 
     # Compute histogram per cell
     ### YOUR CODE HERE
-    pass
+    base_angle = 180 / n_bins
+    block = np.zeros((0,))
+    for i in range(rows):
+        for j in range(cols):
+            for x in range(G_cells[i, j].shape[0]):
+                for y in range(G_cells[i, j].shape[1]):
+                    angle_index = int(np.floor((theta_cells[i, j][x, y]) / base_angle))
+                    if theta_cells[i, j][x, y] == 180:
+                        angle_index = 8
+                    cells[i, j, angle_index] += G_cells[i, j][x, y]
+            block = np.concatenate((block, np.ravel(cells[i, j])))
+    # block.reshape((((H*W*n_bins)/(M*N)), ))
     ### YOUR CODE HERE
 
     return block
@@ -291,17 +317,33 @@ def linear_blend(img1_warped, img2_warped):
     out_H, out_W = img1_warped.shape # Height and width of output space
     img1_mask = (img1_warped != 0)  # Mask == 1 inside the image
     img2_mask = (img2_warped != 0)  # Mask == 1 inside the image
-
+    # assert not np.any(img1_mask)
+    # plt.imshow(img1_mask)
+    # plt.show()
     # Find column of middle row where warped image 1 ends
     # This is where to end weight mask for warped image 1
     right_margin = out_W - np.argmax(np.fliplr(img1_mask)[out_H//2, :].reshape(1, out_W), 1)[0]
-
+    # print(img1_warped[out_H // 2, -1])
     # Find column of middle row where warped image 2 starts
     # This is where to start weight mask for warped image 2
+    # print(img2_mask[out_H//2, :].shape)
     left_margin = np.argmax(img2_mask[out_H//2, :].reshape(1, out_W), 1)[0]
 
     ### YOUR CODE HERE
-    pass
+    weight_matrix_1 = np.ones((out_H, out_W))
+    weight_matrix_1[:, left_margin:right_margin] = np.tile(np.linspace(1, 0, right_margin - left_margin), (out_H, 1))
+    weight_matrix_1[:, right_margin:] = 0
+    weight_matrix_2 = np.ones((out_H, out_W))
+    weight_matrix_2[:, left_margin:right_margin] = np.tile(np.linspace(0, 1, right_margin - left_margin), (out_H, 1))
+    weight_matrix_2[:, :left_margin] = 0
+    merged = weight_matrix_1 * img1_warped + weight_matrix_2 * img2_warped
+    # plt.imshow(img1_warped)
+    # # plt.plot(np.array([left_margin for i in range(1000)]), np.linspace(0, out_H, 1000), 'r.')
+    # # plt.plot(np.array([right_margin for i in range(1000)]), np.linspace(0, out_H, 1000), 'y.')
+    # plt.show()
+    # normalize_matrix = img1_mask * 1.0 + img2_mask
+    # merged = merged / np.maximum(normalize_matrix, 1)
+    # merged = weight_matrix_2 * img2_warped
     ### END YOUR CODE
 
     return merged
@@ -342,7 +384,26 @@ def stitch_multiple_images(imgs, desc_func=simple_descriptor, patch_size=5):
         matches.append(mtchs)
 
     ### YOUR CODE HERE
-    pass
+    convert_matrixs = [np.eye(3)]
+    for i in range(1, len(imgs)):
+        H, _ = ransac(keypoints[i - 1], keypoints[i], matches[i - 1], threshold=1)
+        convert_matrix = H @ convert_matrixs[i - 1]
+        convert_matrixs.append(convert_matrix)
+    output_shape, offset = get_output_space(imgs[0], imgs[1:], convert_matrixs[1:])
+    ## TODO: Here we use the left most image as reference
+    panorama = warp_image(imgs[0], np.eye(3), output_shape, offset)
+    panorama_mask = (panorama != -1)
+    panorama[~panorama_mask] = 0
+    for i in range(1, len(imgs)):
+        # warped_imgs.append(warp_image(imgs[i], convert_matrixs[i], output_shape, offset))
+        warped_image = warp_image(imgs[i], convert_matrixs[i], output_shape, offset)
+        image_mask = (warped_image != -1)
+        warped_image[~image_mask] = 0
+        # plt.imshow(warped_image)
+        # plt.show()
+        panorama = linear_blend(panorama, warped_image)
+        # plt.imshow(panorama)
+        # plt.show()
     ### END YOUR CODE
 
     return panorama
