@@ -30,7 +30,7 @@ def energy_function(image):
     gray_image = color.rgb2gray(image)
 
     ### YOUR CODE HERE
-    pass
+    out = np.sum(np.abs(np.gradient(gray_image)), axis=0)
     ### END YOUR CODE
 
     return out
@@ -77,7 +77,14 @@ def compute_cost(image, energy, axis=1):
     paths[0] = 0  # we don't care about the first row of paths
 
     ### YOUR CODE HERE
-    pass
+    infty = 100000
+    for i in range(1, H):
+        temp_matrix = np.array([np.concatenate((np.array([infty]), cost[i - 1, :-1])),
+                                cost[i - 1],
+                                np.concatenate((cost[i - 1, 1:], np.array([infty])))])
+        cost[i] = np.min(temp_matrix, axis=0) + energy[i]
+        paths[i] = np.argmin(temp_matrix, axis=0) - 1
+
     ### END YOUR CODE
 
     if axis == 0:
@@ -115,7 +122,9 @@ def backtrack_seam(paths, end):
     seam[H-1] = end
 
     ### YOUR CODE HERE
-    pass
+    for i in reversed(range(H - 1)):
+        seam[i] = seam[i + 1] + paths[i + 1, seam[i + 1]]
+
     ### END YOUR CODE
 
     # Check that seam only contains values in [0, W-1]
@@ -145,7 +154,13 @@ def remove_seam(image, seam):
     out = None
     H, W, C = image.shape
     ### YOUR CODE HERE
-    pass
+    out = []
+    for i in range(H):
+        try:
+            out.append(np.concatenate((image[i, :seam[i], :], image[i, seam[i] + 1:, :]), axis=0))
+        except Exception as e:
+            print(e)
+    out = np.array(out)
     ### END YOUR CODE
     out = np.squeeze(out)  # remove last dimension if C == 1
 
@@ -193,7 +208,11 @@ def reduce(image, size, axis=1, efunc=energy_function, cfunc=compute_cost, bfunc
     assert size > 0, "Size must be greater than zero"
 
     ### YOUR CODE HERE
-    pass
+    for i in range(W - size):
+        energy = efunc(out)
+        cost, paths = cfunc(out, energy)
+        seam = bfunc(paths, np.argmin(cost[-1]))
+        out = rfunc(out, seam)
     ### END YOUR CODE
 
     assert out.shape[1] == size, "Output doesn't have the right shape"
@@ -220,7 +239,8 @@ def duplicate_seam(image, seam):
     H, W, C = image.shape
     out = np.zeros((H, W + 1, C))
     ### YOUR CODE HERE
-    pass
+    for i in range(H):
+        out[i] = np.hstack((image[[i], :seam[i] + 1, :], image[[i], seam[i]:, :]))
     ### END YOUR CODE
 
     return out
@@ -261,7 +281,11 @@ def enlarge_naive(image, size, axis=1, efunc=energy_function, cfunc=compute_cost
     assert size > W, "size must be greather than %d" % W
 
     ### YOUR CODE HERE
-    pass
+    for i in range(size - W):
+        energy = efunc(out)
+        cost, paths = cfunc(out, energy)
+        seam = bfunc(paths, np.argmin(cost[-1]))
+        out = dfunc(out, seam)
     ### END YOUR CODE
 
     if axis == 0:
@@ -341,6 +365,7 @@ def find_seams(image, k, axis=1, efunc=energy_function, cfunc=compute_cost, bfun
 
         # We remove the indices used by the seam, so that `indices` keep the same shape as `image`
         indices = rfunc(indices, seam)
+        # very tricky! nice job!
 
     if axis == 0:
         seams = np.transpose(seams, (1, 0))
@@ -388,7 +413,18 @@ def enlarge(image, size, axis=1, efunc=energy_function, cfunc=compute_cost, dfun
     assert size <= 2 * W, "size must be smaller than %d" % (2 * W)
 
     ### YOUR CODE HERE
-    pass
+    seams = find_seams(out, size - W, axis=1, efunc=efunc, cfunc=cfunc, bfunc=bfunc, rfunc=rfunc)
+    output = np.zeros((H, size, C))
+    for i in range(H):
+        line = np.zeros((1, 0, C))
+        lastpos = 0
+        for j in range(W):
+            if (seams[i, j] != 0):
+                line = np.concatenate((line, out[[i], lastpos:j + 1, :]), axis=1)
+                lastpos = j
+        line = np.concatenate((line, out[[i], lastpos:, :]), axis=1)
+        output[i] = line
+    out = output
     ### END YOUR CODE
 
     if axis == 0:
@@ -470,6 +506,7 @@ def reduce_fast(image, size, axis=1, efunc=energy_function, cfunc=compute_cost):
 
     ### YOUR CODE HERE
     # Delete that line, just here for the autograder to pass setup checks
+    ## TODO: WE CAN BY RECORD THE LAST MODIFIED PLACE TO ACCELERATE
     out = reduce(image, size, 1, efunc, cfunc)
     pass
     ### END YOUR CODE
