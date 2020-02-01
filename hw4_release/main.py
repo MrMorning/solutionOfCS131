@@ -1,26 +1,37 @@
-import numpy as np
+import matplotlib.pyplot as plt
+from skimage import io, util
 
-from seam_carving import enlarge, enlarge_naive
+# Load image
+image = io.imread('imgs/wyeth.jpg')
+image = util.img_as_float(image)
 
-# Let's first test with a small example
-test_img = np.array([[0.0, 1.0, 3.0],
-                     [0.0, 1.0, 3.0],
-                     [0.0, 1.0, 3.0]])
-# test_img = np.arange(9, dtype=np.float64).reshape((3, 3))
-test_img = np.stack([test_img, test_img, test_img], axis=2)
-assert test_img.shape == (3, 3, 3)
+mask = io.imread('imgs/wyeth_mask.jpg', as_grey=True)
+mask = util.img_as_bool(mask)
 
-# Increase image width
-W_new = 5
+plt.subplot(1, 2, 1)
+plt.title('Original Image')
+plt.imshow(image)
 
-out_naive = enlarge_naive(test_img, W_new)
-out = enlarge(test_img, W_new)
+plt.subplot(1, 2, 2)
+plt.title('Mask of the object to remove')
+plt.imshow(mask)
 
-print("Original image (channel 0):")
-print(test_img[:, :, 0])
-print("Enlarged naive image (channel 0): first seam is duplicated twice.")
-print(out_naive[:, :, 0])
-print("Enlarged image (channel 0): first and second seam are each duplicated once.")
-print(out[:, :, 0])
+plt.show()
+from seam_carving import remove_object
 
-assert np.allclose(out[:, :, 0], np.array([[0, 0, 1, 1, 3], [0, 0, 1, 1, 3], [0, 0, 1, 1, 3]]))
+# Use your function to remove the object
+out = remove_object(image, mask)
+
+plt.subplot(2, 2, 1)
+plt.title('Original Image')
+plt.imshow(image)
+
+plt.subplot(2, 2, 2)
+plt.title('Mask of the object to remove')
+plt.imshow(mask)
+
+plt.subplot(2, 2, 3)
+plt.title('Image with object removed')
+plt.imshow(out)
+
+plt.show()

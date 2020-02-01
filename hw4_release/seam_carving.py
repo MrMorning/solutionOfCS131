@@ -466,7 +466,20 @@ def compute_forward_cost(image, energy):
     paths[0] = 0  # we don't care about the first row of paths
 
     ### YOUR CODE HERE
-    pass
+    infty = 100000
+    for i in range(1, H):
+        temp_matrix = np.array([np.concatenate((np.array([infty]), cost[i - 1, :-1])),
+                                cost[i - 1],
+                                np.concatenate((cost[i - 1, 1:], np.array([infty])))])
+        temp_matrix[0] += np.concatenate((np.array([0]), np.abs(image[i - 1, 1:] - image[i, :-1])))
+        temp_matrix[2] += np.concatenate((np.abs(image[i - 1, :-1] - image[i, 1:]), np.array([0])))
+        # print('temp_matrix')
+        # print(temp_matrix)
+        cost[i] = np.min(temp_matrix, axis=0) + energy[i]
+        # print('temp aux mat')
+        # print(np.concatenate((np.array([0]), np.abs(image[i, 2:] - image[i, :-2]), np.array([0]))))
+        cost[i] += np.concatenate((np.array([0]), np.abs(image[i, 2:] - image[i, :-2]), np.array([0])))
+        paths[i] = np.argmin(temp_matrix, axis=0) - 1
     ### END YOUR CODE
 
     # Check that paths only contains -1, 0 or 1
@@ -537,7 +550,23 @@ def remove_object(image, mask):
     out = np.copy(image)
 
     ### YOUR CODE HERE
-    pass
+    import matplotlib.pyplot as plt
+    magic_number = 19260817
+
+    def specified_efunc(image):
+        out = energy_function(image)
+        out[(image == magic_number / 1e8)[:, :, 0]] = -magic_number
+        return out
+
+    nonzero_indices = np.nonzero(mask)
+    left_margin = np.min(nonzero_indices[1])
+    right_margin = np.max(nonzero_indices[1])
+    out[mask] = magic_number / 1e8
+    out = reduce(out, W - (right_margin - left_margin), axis=1, efunc=specified_efunc)
+    plt.imshow(out)
+    plt.show()
+    out = enlarge(out, W, axis=1)
+
     ### END YOUR CODE
 
     assert out.shape == image.shape
