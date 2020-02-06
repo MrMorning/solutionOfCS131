@@ -43,7 +43,7 @@ def predict_labels(dists, y_train, k=1):
 
     Args:
         dists: A numpy array of shape (num_test, num_train) where dists[i, j] gives
-               the distance betwen the ith test point and the jth training point.
+               the distance between the ith test point and the jth training point.
 
     Returns:
         y_pred: A numpy array of shape (num_test,) containing predicted labels for the
@@ -66,7 +66,7 @@ def predict_labels(dists, y_train, k=1):
         # label.
 
         # YOUR CODE HERE
-        
+
         # END YOUR CODE
 
     return y_pred
