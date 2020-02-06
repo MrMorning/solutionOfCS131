@@ -26,8 +26,10 @@ def compute_distances(X1, X2):
     # in particular you should not use functions from scipy.
     #
     # HINT: Try to formulate the l2 distance using matrix multiplication
-
-    pass
+    D = X1.shape[1]
+    X1 = X1.reshape((M, 1, D))
+    X2 = X2.reshape((1, N, D))
+    dists = np.sum((X1 - X2) ** 2, axis=2)
     # END YOUR CODE
 
     assert dists.shape == (M, N), "dists should have shape (M, N), got %s" % dists.shape
@@ -49,7 +51,6 @@ def predict_labels(dists, y_train, k=1):
     """
     num_test, num_train = dists.shape
     y_pred = np.zeros(num_test, dtype=np.int)
-
     for i in range(num_test):
         # A list of length k storing the labels of the k nearest neighbors to
         # the ith test point.
@@ -65,7 +66,7 @@ def predict_labels(dists, y_train, k=1):
         # label.
 
         # YOUR CODE HERE
-        pass
+        
         # END YOUR CODE
 
     return y_pred
