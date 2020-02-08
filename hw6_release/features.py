@@ -80,7 +80,12 @@ class PCA(object):
         #     1. compute the covariance matrix of X, of shape (D, D)
         #     2. compute the eigenvalues and eigenvectors of the covariance matrix
         #     3. Sort both of them in decreasing order (ex: 1.0 > 0.5 > 0.0 > -0.2 > -1.2)
-        pass
+        all_one_vector = np.ones((N, 1))
+        H = np.eye(N) - 1.0 / N * all_one_vector @ all_one_vector.T
+        cov_mat = 1.0 / N * X.T @ H @ X
+        e_vals, e_vecs = np.linalg.eig(cov_mat)
+        e_vals = np.flip(e_vals)
+        e_vecs = np.fliplr(e_vecs)
         # END YOUR CODE
 
         # Check the output shapes
@@ -105,7 +110,12 @@ class PCA(object):
         # YOUR CODE HERE
         # Here, compute the SVD of X
         # Make sure to return vecs as the matrix of vectors where each column is a singular vector
-        pass
+        all_one_vector = np.ones((N, 1))
+        H = np.eye(N) - 1.0 / N * all_one_vector @ all_one_vector.T
+        cov_mat = 1.0 / N * X.T @ H @ X
+        u, s, vh = np.linalg.svd(cov_mat)
+        vecs = vh
+        vals = np.fliplr(s)
         # END YOUR CODE
         assert vecs.shape == (D, D)
         K = min(N, D)
